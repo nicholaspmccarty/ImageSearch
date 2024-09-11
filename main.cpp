@@ -16,6 +16,7 @@
 using namespace std;
 using namespace std::string_literals;
 
+// Declaration for computeBackgroundPixel. Ensures visibility when accessed in the main method.
 Pixel computeBackgroundPixel(const PNG& img1, const PNG& mask, const int startRow, const int startCol, 
                              const int maxRow, const int maxCol);
 
