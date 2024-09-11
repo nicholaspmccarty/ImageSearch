@@ -46,11 +46,14 @@ void imageSearch(const std::string& mainImageFile,
     // Implement this method using various methods or even better
     // use an object-oriented approach.
     std::cout << "This is a test message" << std::endl;
+    
+    // Create local variables
     PNG largeImg;
     PNG maskImg;
 
-    largeImg.load(argv[1]);  
-    maskImg.load(argv[2]);
+    // Load the images
+    largeImg.load(mainImageFile);  
+    maskImg.load(srchImageFile);
 }
 
 /**

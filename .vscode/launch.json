@@ -10,10 +10,10 @@
             "request": "launch",
             "program": "${fileDirname}/${workspaceFolderBasename}",
             "args": [
-                "flag_of_the_us.png",
-                "star.png",
+                "images/Flag_of_the_US.png",
+                "images/star.png",
                 "output.png"
-              ],
+            ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],
