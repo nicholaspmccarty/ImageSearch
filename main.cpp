@@ -1,3 +1,6 @@
+// Nicholas McCarty
+// Copyright 2024 @ nicholasmccarty252@gmail.com
+
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -66,6 +69,8 @@ void imageSearch(const std::string& mainImageFile,
     // Testing comparisons
     const auto pix = largeImg.getPixel(20, 35);
     const auto pix2 = largeImg.getPixel(21, 35);
+    
+    // Verifying color authenticity. Will remove on final release
     std::cout << "red = " << static_cast<int>(pix.color.red) << std::endl;
     std::cout << "green = " << static_cast<int>(pix.color.green) << std::endl;
     std::cout << "blue = " << static_cast<int>(pix.color.blue) << std::endl;
@@ -79,6 +84,9 @@ void imageSearch(const std::string& mainImageFile,
     std::cout << pix.rgba << std::endl;
     std::cout << pix2.rgba << std::endl;
     std::cout << (pix.rgba == pix2.rgba) << std::endl;
+    
+    
+    // Debugging variables to make sure we are reading proper white/black pixels from mask file.
     size_t hit = 0;
     size_t miss = 0;
     size_t hitter = 0;
@@ -96,16 +104,13 @@ void imageSearch(const std::string& mainImageFile,
                     const Pixel Black{ .rgba = 0xff'00'00'00U };
                     const Pixel White{ .rgba = 0xff'ff'ff'ffU };
 
-
-                    Pixel curr = maskImg.getPixel(maskRow, maskCol);
-                    ///std::cout << curr.rgba << std::endl;
-                    //std::cout << "Black: " << Black.rgba << std::endl;
                     if (static_cast<int>(maskImg.getPixel(maskRow,maskCol).rgba) == static_cast<int>(Black.rgba)) {
-                        hit++;
+                        //TODO: Check if original the pixel is be “same shade§” of the average background.
+                        hit++; 
                     } else if (static_cast<int>(maskImg.getPixel(maskRow,maskCol).rgba) == static_cast<int>(White.rgba)) {
+                        //TODO: Check if original pixel is the oposite shade
                         hitter++;
-                    }
-                    else {
+                    } else {
                         miss++;
                     }
                 }
