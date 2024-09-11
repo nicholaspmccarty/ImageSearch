@@ -11,7 +11,7 @@
             "program": "${fileDirname}/${workspaceFolderBasename}",
             "args": [
                 "images/Flag_of_the_US.png",
-                "images/star.png",
+                "images/star_mask.png",
                 "output.png"
             ],
             "stopAtEntry": false,

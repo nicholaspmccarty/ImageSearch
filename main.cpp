@@ -20,6 +20,9 @@ using namespace std::string_literals;
 Pixel computeBackgroundPixel(const PNG& img1, const PNG& mask, const int startRow, const int startCol, 
                              const int maxRow, const int maxCol);
 
+
+
+
 /**
  * This is the top-level method that is called from the main method to 
  * perform the necessary image search operation. 
@@ -61,26 +64,68 @@ void imageSearch(const std::string& mainImageFile,
 
 
     // Testing comparisons
-    const auto pix = largeImg.getPixel(0, 0);
-    std::cout << "red = " << pix.color.red << std::endl;
-    std::cout << "green = " << pix.color.green << std::endl;
-    std::cout << "blue = " << pix.color.blue << std::endl;
-    std::cout << "alpha = " << pix.color.alpha << std::endl;
+    const auto pix = largeImg.getPixel(20, 35);
+    const auto pix2 = largeImg.getPixel(21, 35);
+    std::cout << "red = " << static_cast<int>(pix.color.red) << std::endl;
+    std::cout << "green = " << static_cast<int>(pix.color.green) << std::endl;
+    std::cout << "blue = " << static_cast<int>(pix.color.blue) << std::endl;
+    std::cout << "alpha = " << static_cast<int>(pix.color.alpha) << std::endl;
+    std::cout << "red = " << static_cast<int>(pix2.color.red) << std::endl;
+    std::cout << "green = " << static_cast<int>(pix2.color.green) << std::endl;
+    std::cout << "blue = " << static_cast<int>(pix2.color.blue) << std::endl;
+    std::cout << "alpha = " << static_cast<int>(pix2.color.alpha) << std::endl;
+    const Pixel Black{ .rgba = 0xff'00'00'00U };
+    std::cout << Black.rgba << std::endl;
+    std::cout << pix.rgba << std::endl;
+    std::cout << pix2.rgba << std::endl;
+    std::cout << (pix.rgba == pix2.rgba) << std::endl;
+    size_t hit = 0;
+    size_t miss = 0;
+    size_t hitter = 0;
+   
 
-    for (int row = 0; row <= largeImg.getHeight() - maskImg.getHeight(); ++row) {
-        for (int col = 0; col <= largeImg.getWidth() - maskImg.getWidth(); ++col) {
+    for (int row = 0; row < largeImg.getHeight() - maskImg.getHeight(); ++row) {
+        for (int col = 0; col < largeImg.getWidth() - maskImg.getWidth(); ++col) {
             
             // First thing we do is compute the average background. Then we will work on Pixel matching
             // to check the specific subregion.
             Pixel bgColor = computeBackgroundPixel(largeImg, maskImg, row, col, maskImg.getHeight(), maskImg.getWidth());
             
-            // After this, continue with pixel matching
+            for (int maskRow = 0; maskRow < maskImg.getHeight(); ++maskRow) {
+                for (int maskCol = 0; maskCol < maskImg.getWidth(); ++maskCol) {
+                    const Pixel Black{ .rgba = 0xff'00'00'00U };
+                    const Pixel White{ .rgba = 0xff'ff'ff'ffU };
+
+
+                    Pixel curr = maskImg.getPixel(maskRow, maskCol);
+                    ///std::cout << curr.rgba << std::endl;
+                    //std::cout << "Black: " << Black.rgba << std::endl;
+                    if (static_cast<int>(maskImg.getPixel(maskRow,maskCol).rgba) == static_cast<int>(Black.rgba)) {
+                        hit++;
+                    } else if (static_cast<int>(maskImg.getPixel(maskRow,maskCol).rgba) == static_cast<int>(White.rgba)) {
+                        hitter++;
+                    }
+                    else {
+                        miss++;
+                    }
+                }
+            }
+            
+            
     }
 }
+std::cout << "black: " << hit << std::endl;
+std::cout << "white: " << hitter << std::endl; 
+std::cout << "total misses" << miss << std::endl;   
+}
+
+
+
+
 
 
     
-}
+
 
 /**
  * The main method simply checks for command-line arguments and then calls
@@ -118,7 +163,6 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
 Pixel computeBackgroundPixel(const PNG& img1, const PNG& mask, const int startRow, const int startCol, 
     const int maxRow, const int maxCol) {
     const Pixel Black{ .rgba = 0xff'00'00'00U };
@@ -145,5 +189,4 @@ Pixel computeBackgroundPixel(const PNG& img1, const PNG& mask, const int startRo
 }
     return { .color = {avgRed, avgGreen, avgBlue, 0} };
 }
-
 // End of source code
