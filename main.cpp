@@ -16,6 +16,9 @@
 using namespace std;
 using namespace std::string_literals;
 
+Pixel computeBackgroundPixel(const PNG& img1, const PNG& mask, const int startRow, const int startCol, 
+                             const int maxRow, const int maxCol);
+
 /**
  * This is the top-level method that is called from the main method to 
  * perform the necessary image search operation. 
@@ -54,6 +57,28 @@ void imageSearch(const std::string& mainImageFile,
     // Load the images
     largeImg.load(mainImageFile);  
     maskImg.load(srchImageFile);
+
+
+    // Testing comparisons
+    const auto pix = largeImg.getPixel(0, 0);
+    std::cout << "red = " << pix.color.red << std::endl;
+    std::cout << "green = " << pix.color.green << std::endl;
+    std::cout << "blue = " << pix.color.blue << std::endl;
+    std::cout << "alpha = " << pix.color.alpha << std::endl;
+
+    for (int row = 0; row <= largeImg.getHeight() - maskImg.getHeight(); ++row) {
+        for (int col = 0; col <= largeImg.getWidth() - maskImg.getWidth(); ++col) {
+            
+            // First thing we do is compute the average background. Then we will work on Pixel matching
+            // to check the specific subregion.
+            Pixel bgColor = computeBackgroundPixel(largeImg, maskImg, row, col, maskImg.getHeight(), maskImg.getWidth());
+            
+            // After this, continue with pixel matching
+    }
+}
+
+
+    
 }
 
 /**
@@ -91,6 +116,33 @@ int main(int argc, char *argv[]) {
         (argc > 6 ? std::stoi(argv[6]) : 32));   // Optional tolerance
 
     return 0;
+}
+
+Pixel computeBackgroundPixel(const PNG& img1, const PNG& mask, const int startRow, const int startCol, 
+    const int maxRow, const int maxCol) {
+    const Pixel Black{ .rgba = 0xff'00'00'00U };
+    int red = 0, blue = 0, green = 0, count = 0;
+
+    for (int row = 0; (row < maxRow); row++) {
+        for (int col = 0; col < maxCol; col++) {
+            if (mask.getPixel(row, col).rgba == Black.rgba) { // Check for black pixels in the mask
+                const auto pix = img1.getPixel(row + startRow, col + startCol); 
+                     // Get corresponding pixel from the larger image
+                red += pix.color.red;
+                green += pix.color.green;
+                blue += pix.color.blue;
+                count++;
+            }
+        }
+    }
+
+    unsigned char avgRed = 0, avgGreen = 0, avgBlue = 0;
+    if (count > 0) {
+        avgRed = red / count;
+        avgGreen = green / count;
+        avgBlue = blue / count;
+}
+    return { .color = {avgRed, avgGreen, avgBlue, 0} };
 }
 
 // End of source code
