@@ -97,15 +97,21 @@ int processRegion(const PNG& largeImg, const PNG& maskImg, int row, int col, con
     return hit - miss;
 }
 
+bool isCloseToWhite(const Pixel& pixel, const Pixel& White, int tolerance) {
+    // Check if the pixel is close to white within a certain tolerance level
+    return (abs(pixel.color.red - White.color.red) <= tolerance &&
+            abs(pixel.color.green - White.color.green) <= tolerance &&
+            abs(pixel.color.blue - White.color.blue) <= tolerance);
+}
+
 void hitOrMiss(const Pixel& maskPixel, const Pixel& Black, const Pixel& White, bool isSameShade, size_t& hit, size_t& miss) {
     if (maskPixel.rgba == Black.rgba) {
         isSameShade ? hit++ : miss++;
-    } else if (maskPixel.rgba == White.rgba) {
-        isSameShade ? miss++ : hit++;
     } else {
-        miss++;
+        isSameShade ? miss++ : hit++;
     }
 }
+
 
 bool isOverlapping(const vector<pair<int, int>>& regions, int row, int col, const PNG& maskImg) {
     for (const auto& region : regions) {
