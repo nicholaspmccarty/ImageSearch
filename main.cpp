@@ -13,6 +13,7 @@
 #include <numeric>
 #include <omp.h>
 #include "PNG.h"
+#include <vector>
 
 // It is ok to use the following namespace delarations in C++ source
 // files only. They must never be used in header files.
@@ -56,72 +57,70 @@ void imageSearch(const std::string& mainImageFile,
     // Implement this method using various methods or even better
     // use an object-oriented approach.
     std::cout << "This is a test message" << std::endl;
-    
     // Create local variables
     PNG largeImg;
     PNG maskImg;
-
     // Load the images
     largeImg.load(mainImageFile);  
     maskImg.load(srchImageFile);
+    vector<pair<int, int>> matchedRegions;
+    for (int row = 0; row <= largeImg.getHeight() - maskImg.getHeight(); ++row) {
+    for (int col = 0; col <= largeImg.getWidth() - maskImg.getWidth(); ++col) {
+        size_t hit = 0;
+        size_t miss = 0;
+        // Compute the background pixel once for the current subregion.
+        Pixel bgColor = computeBackgroundPixel(largeImg, maskImg, row, col, maskImg.getHeight(), maskImg.getWidth());
+        for (int maskRow = 0; maskRow < maskImg.getHeight(); ++maskRow) {
+            for (int maskCol = 0; maskCol < maskImg.getWidth(); ++maskCol) {
+                const Pixel Black{ .rgba = 0xff'00'00'00U };
+                const Pixel White{ .rgba = 0xff'ff'ff'ffU };
 
-
-    // Testing comparisons
-    const auto pix = largeImg.getPixel(20, 35);
-    const auto pix2 = largeImg.getPixel(21, 35);
-    
-    // Verifying color authenticity. Will remove on final release
-    std::cout << "red = " << static_cast<int>(pix.color.red) << std::endl;
-    std::cout << "green = " << static_cast<int>(pix.color.green) << std::endl;
-    std::cout << "blue = " << static_cast<int>(pix.color.blue) << std::endl;
-    std::cout << "alpha = " << static_cast<int>(pix.color.alpha) << std::endl;
-    std::cout << "red = " << static_cast<int>(pix2.color.red) << std::endl;
-    std::cout << "green = " << static_cast<int>(pix2.color.green) << std::endl;
-    std::cout << "blue = " << static_cast<int>(pix2.color.blue) << std::endl;
-    std::cout << "alpha = " << static_cast<int>(pix2.color.alpha) << std::endl;
-    const Pixel Black{ .rgba = 0xff'00'00'00U };
-    std::cout << Black.rgba << std::endl;
-    std::cout << pix.rgba << std::endl;
-    std::cout << pix2.rgba << std::endl;
-    std::cout << (pix.rgba == pix2.rgba) << std::endl;
-    
-    
-    // Debugging variables to make sure we are reading proper white/black pixels from mask file.
-    size_t hit = 0;
-    size_t miss = 0;
-    size_t hitter = 0;
-   
-
-    for (int row = 0; row < largeImg.getHeight() - maskImg.getHeight(); ++row) {
-        for (int col = 0; col < largeImg.getWidth() - maskImg.getWidth(); ++col) {
-            
-            // First thing we do is compute the average background. Then we will work on Pixel matching
-            // to check the specific subregion.
-            Pixel bgColor = computeBackgroundPixel(largeImg, maskImg, row, col, maskImg.getHeight(), maskImg.getWidth());
-            
-            for (int maskRow = 0; maskRow < maskImg.getHeight(); ++maskRow) {
-                for (int maskCol = 0; maskCol < maskImg.getWidth(); ++maskCol) {
-                    const Pixel Black{ .rgba = 0xff'00'00'00U };
-                    const Pixel White{ .rgba = 0xff'ff'ff'ffU };
-
-                    if (static_cast<int>(maskImg.getPixel(maskRow,maskCol).rgba) == static_cast<int>(Black.rgba)) {
-                        //TODO: Check if original the pixel is be “same shade§” of the average background.
-                        hit++; 
-                    } else if (static_cast<int>(maskImg.getPixel(maskRow,maskCol).rgba) == static_cast<int>(White.rgba)) {
-                        //TODO: Check if original pixel is the oposite shade
-                        hitter++;
+                // Fetch pixels once
+                const auto imgPixel = largeImg.getPixel(row + maskRow, col + maskCol);
+                // Pixel comparison: compute once outside of conditional checks
+                const bool isSameShade = (std::abs(imgPixel.color.red - bgColor.color.red) < tolerance) &&
+                                         (std::abs(imgPixel.color.green - bgColor.color.green) < tolerance) &&
+                                         (std::abs(imgPixel.color.blue - bgColor.color.blue) < tolerance);
+                const auto maskPixel = maskImg.getPixel(maskRow, maskCol);
+                const int maskPixelRGBA = static_cast<int>(maskPixel.rgba);
+                if (maskPixelRGBA == static_cast<int>(Black.rgba)) {
+                    // Check if the pixel is "same shade"
+                    if (isSameShade) {
+                        hit++; // Matching pixel
                     } else {
-                        miss++;
+                        miss++; // Mismatching pixel
                     }
+                } else if (maskPixelRGBA == static_cast<int>(White.rgba)) {
+                    // Check if the pixel is not the "same shade"
+                    if (!isSameShade) {
+                        hit++; // Correct mismatch
+                    } else {
+                        miss++; // Incorrect match
+                    }
+                } else {
+                    miss++; // Other cases (not black or white)
                 }
             }
-            
-            
+        }
+        int netMatch = hit - miss;
+        if (netMatch > maskImg.getWidth() * maskImg.getHeight() * matchPercent / 100) {
+            bool overlap = false;
+            // Check for overlap with previously matched regions
+            for (const auto& region : matchedRegions) {
+                if (abs(region.first - row) < maskImg.getHeight() && abs(region.second - col) < maskImg.getWidth()) {
+                    overlap = true;
+                    break;
+                }
+            }
+            // Only add non-overlapping matches
+            if (!overlap) {
+                std::cout << "sub-image matched at: " << row << ", " << col << ", " << row + maskImg.getHeight() << ", " << col + maskImg.getWidth() << std::endl;
+                matchedRegions.push_back({row, col});
+            } 
+        }
     }
 }
-std::cout << "black: " << hit << std::endl;
-std::cout << "white: " << hitter << std::endl; 
-std::cout << "total misses" << miss << std::endl;   
+std::cout << "Number of matches: " << matchedRegions.size() << std::endl;
 }
 
 

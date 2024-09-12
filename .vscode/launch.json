@@ -10,9 +10,12 @@
             "request": "launch",
             "program": "${fileDirname}/${workspaceFolderBasename}",
             "args": [
-                "images/Flag_of_the_US.png",
-                "images/star_mask.png",
-                "output.png"
+                "images/MiamiMarcumCenter.png",
+                "images/WindowPane_mask.png",
+                "result.png",
+                true,
+                50,
+                64
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
