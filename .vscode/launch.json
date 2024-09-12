@@ -10,12 +10,12 @@
             "request": "launch",
             "program": "${fileDirname}/${workspaceFolderBasename}",
             "args": [
-                "images/MiamiMarcumCenter.png",
-                "images/WindowPane_mask.png",
+                "images/TestImage.png",
+                "images/i_mask.png",
                 "result.png",
                 true,
-                50,
-                64
+                75,
+                0
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

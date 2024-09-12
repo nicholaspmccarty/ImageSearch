@@ -24,6 +24,11 @@ using namespace std::string_literals;
 Pixel computeBackgroundPixel(const PNG& img1, const PNG& mask, const int startRow, const int startCol, 
                              const int maxRow, const int maxCol);
 
+bool isOverlapping(const vector<pair<int, int>>& regions, int row, int col, const PNG& maskImg);
+void hitOrMiss(const Pixel& maskPixel, const Pixel& Black, const Pixel& White, bool isSameShade, size_t& hit, size_t& miss);
+int processRegion(const PNG& largeImg, const PNG& maskImg, int row, int col, const Pixel& bgColor, int tolerance);
+
+
 
 
 
@@ -51,85 +56,65 @@ Pixel computeBackgroundPixel(const PNG& img1, const PNG& mask, const int startRo
  * channel when comparing  
  */
 void imageSearch(const std::string& mainImageFile,
-                const std::string& srchImageFile, 
-                const std::string& outImageFile, const bool isMask = true, 
-                const int matchPercent = 75, const int tolerance = 32) {
-    // Implement this method using various methods or even better
-    // use an object-oriented approach.
-    std::cout << "This is a test message" << std::endl;
-    // Create local variables
-    PNG largeImg;
-    PNG maskImg;
-    // Load the images
+                 const std::string& srchImageFile, 
+                 const std::string& outImageFile, 
+                 const bool isMask = true, 
+                 const int matchPercent = 75, 
+                 const int tolerance = 32) {
+
+    PNG largeImg, maskImg;
     largeImg.load(mainImageFile);  
     maskImg.load(srchImageFile);
     vector<pair<int, int>> matchedRegions;
-    for (int row = 0; row <= largeImg.getHeight() - maskImg.getHeight(); ++row) {
-    for (int col = 0; col <= largeImg.getWidth() - maskImg.getWidth(); ++col) {
-        size_t hit = 0;
-        size_t miss = 0;
-        // Compute the background pixel once for the current subregion.
-        Pixel bgColor = computeBackgroundPixel(largeImg, maskImg, row, col, maskImg.getHeight(), maskImg.getWidth());
-        for (int maskRow = 0; maskRow < maskImg.getHeight(); ++maskRow) {
-            for (int maskCol = 0; maskCol < maskImg.getWidth(); ++maskCol) {
-                const Pixel Black{ .rgba = 0xff'00'00'00U };
-                const Pixel White{ .rgba = 0xff'ff'ff'ffU };
 
-                // Fetch pixels once
-                const auto imgPixel = largeImg.getPixel(row + maskRow, col + maskCol);
-                // Pixel comparison: compute once outside of conditional checks
-                const bool isSameShade = (std::abs(imgPixel.color.red - bgColor.color.red) < tolerance) &&
-                                         (std::abs(imgPixel.color.green - bgColor.color.green) < tolerance) &&
-                                         (std::abs(imgPixel.color.blue - bgColor.color.blue) < tolerance);
-                const auto maskPixel = maskImg.getPixel(maskRow, maskCol);
-                const int maskPixelRGBA = static_cast<int>(maskPixel.rgba);
-                if (maskPixelRGBA == static_cast<int>(Black.rgba)) {
-                    // Check if the pixel is "same shade"
-                    if (isSameShade) {
-                        hit++; // Matching pixel
-                    } else {
-                        miss++; // Mismatching pixel
-                    }
-                } else if (maskPixelRGBA == static_cast<int>(White.rgba)) {
-                    // Check if the pixel is not the "same shade"
-                    if (!isSameShade) {
-                        hit++; // Correct mismatch
-                    } else {
-                        miss++; // Incorrect match
-                    }
-                } else {
-                    miss++; // Other cases (not black or white)
-                }
-            }
-        }
-        int netMatch = hit - miss;
-        if (netMatch > maskImg.getWidth() * maskImg.getHeight() * matchPercent / 100) {
-            bool overlap = false;
-            // Check for overlap with previously matched regions
-            for (const auto& region : matchedRegions) {
-                if (abs(region.first - row) < maskImg.getHeight() && abs(region.second - col) < maskImg.getWidth()) {
-                    overlap = true;
-                    break;
-                }
-            }
-            // Only add non-overlapping matches
-            if (!overlap) {
+    for (int row = 0; row <= largeImg.getHeight() - maskImg.getHeight(); ++row) {
+        for (int col = 0; col <= largeImg.getWidth() - maskImg.getWidth(); ++col) {
+            Pixel bgColor = computeBackgroundPixel(largeImg, maskImg, row, col, maskImg.getHeight(), maskImg.getWidth());
+            int netMatch = processRegion(largeImg, maskImg, row, col, bgColor, tolerance);
+            
+            if (netMatch > maskImg.getWidth() * maskImg.getHeight() * matchPercent / 100 && !isOverlapping(matchedRegions, row, col, maskImg)) {
                 std::cout << "sub-image matched at: " << row << ", " << col << ", " << row + maskImg.getHeight() << ", " << col + maskImg.getWidth() << std::endl;
                 matchedRegions.push_back({row, col});
-            } 
+            }
         }
     }
+    std::cout << "Number of matches: " << matchedRegions.size() << std::endl;
 }
-std::cout << "Number of matches: " << matchedRegions.size() << std::endl;
+
+int processRegion(const PNG& largeImg, const PNG& maskImg, int row, int col, const Pixel& bgColor, int tolerance) {
+    size_t hit = 0, miss = 0;
+    for (int maskRow = 0; maskRow < maskImg.getHeight(); ++maskRow) {
+        for (int maskCol = 0; maskCol < maskImg.getWidth(); ++maskCol) {
+            const Pixel Black{ .rgba = 0xff'00'00'00U }, White{ .rgba = 0xff'ff'ff'ffU };
+            const auto imgPixel = largeImg.getPixel(row + maskRow, col + maskCol);
+            const auto maskPixel = maskImg.getPixel(maskRow, maskCol);
+            bool isSameShade = (std::abs(imgPixel.color.red - bgColor.color.red) < tolerance) &&
+                               (std::abs(imgPixel.color.green - bgColor.color.green) < tolerance) &&
+                               (std::abs(imgPixel.color.blue - bgColor.color.blue) < tolerance);
+            hitOrMiss(maskPixel, Black, White, isSameShade, hit, miss);
+        }
+    }
+    return hit - miss;
 }
 
+void hitOrMiss(const Pixel& maskPixel, const Pixel& Black, const Pixel& White, bool isSameShade, size_t& hit, size_t& miss) {
+    if (maskPixel.rgba == Black.rgba) {
+        isSameShade ? hit++ : miss++;
+    } else if (maskPixel.rgba == White.rgba) {
+        isSameShade ? miss++ : hit++;
+    } else {
+        miss++;
+    }
+}
 
-
-
-
-
-    
-
+bool isOverlapping(const vector<pair<int, int>>& regions, int row, int col, const PNG& maskImg) {
+    for (const auto& region : regions) {
+        if (abs(region.first - row) < maskImg.getHeight() && abs(region.second - col) < maskImg.getWidth()) {
+            return true;
+        }
+    }
+    return false;
+}
 
 /**
  * The main method simply checks for command-line arguments and then calls
