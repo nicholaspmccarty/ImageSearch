@@ -219,6 +219,8 @@ PNG::prepareBuffer() {
     }
 }
 
+
+
 void
 PNG::setRed(const int row, const int col) {
     const int idx = (row * width + col) * 4;
