@@ -11,9 +11,11 @@
             "program": "${fileDirname}/${workspaceFolderBasename}",
             "args": [
                 "images/TestImage.png",
-                "images/i_mask.png",
+                "images/and_mask.png",
                 "result.png",
-                true
+                "true",
+                "75",
+                "16"
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
